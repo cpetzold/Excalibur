@@ -200,6 +200,18 @@ export class Engine extends Class implements ICanInitialize, ICanUpdate, ICanDra
     return this.canvas.width;
   }
 
+  public set canvasWidth(width: number) {
+    this.canvas.width = width * this.pixelRatio;
+    this.canvas.style.width = width + 'px';
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+  }
+
+  public set canvasHeight(height: number) {
+    this.canvas.height = height * this.pixelRatio;
+    this.canvas.style.height = height + 'px';
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+  }
+
   /**
    * Returns half width of the game canvas in pixels (half physical width component)
    */
@@ -542,8 +554,8 @@ O|===|* >________________>\n\
       }
       this._logger.debug('Engine viewport is size ' + options.width + ' x ' + options.height);
 
-      this.canvas.width = options.width;
-      this.canvas.height = options.height;
+      this.canvasWidth = options.width;
+      this.canvasHeight = options.height;
     } else if (!options.displayMode) {
       this._logger.debug('Engine viewport is fullscreen');
       this.displayMode = DisplayMode.FullScreen;
@@ -911,17 +923,17 @@ O|===|* >________________>\n\
   /**
    * Sets the internal canvas height based on the selected display mode.
    */
-  private _setHeightByDisplayMode(parent: HTMLElement | Window) {
+  private _setSizeByDisplayMode(parent: HTMLElement | Window) {
     if (this.displayMode === DisplayMode.Container) {
-      this.canvas.width = (<HTMLElement>parent).clientWidth;
-      this.canvas.height = (<HTMLElement>parent).clientHeight;
+      this.canvasWidth = (<HTMLElement>parent).clientWidth;
+      this.canvasHeight = (<HTMLElement>parent).clientHeight;
     }
 
     if (this.displayMode === DisplayMode.FullScreen) {
       document.body.style.margin = '0px';
       document.body.style.overflow = 'hidden';
-      this.canvas.width = (<Window>parent).innerWidth;
-      this.canvas.height = (<Window>parent).innerHeight;
+      this.canvasWidth = (<Window>parent).innerWidth;
+      this.canvasHeight = (<Window>parent).innerHeight;
     }
   }
 
@@ -933,19 +945,26 @@ O|===|* >________________>\n\
       this.displayMode = options.displayMode;
     }
 
+    this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
+    this._suppressHiDPIScaling = !!options.suppressHiDPIScaling;
+
     if (this.displayMode === DisplayMode.FullScreen || this.displayMode === DisplayMode.Container) {
       var parent = <any>(this.displayMode === DisplayMode.Container ? <any>(this.canvas.parentElement || document.body) : <any>window);
 
-      this._setHeightByDisplayMode(parent);
+      this._setSizeByDisplayMode(parent);
+      this.setAntialiasing(this._isSmoothingEnabled);
 
       window.addEventListener('resize', () => {
         this._logger.debug('View port resized');
-        this._setHeightByDisplayMode(parent);
-        this._logger.info('parent.clientHeight ' + parent.clientHeight);
-        this.setAntialiasing(this._isSmoothingEnabled);
+        this._setSizeByDisplayMode(parent);
       });
     } else if (this.displayMode === DisplayMode.Position) {
       this._intializeDisplayModePosition(options);
+    }
+
+    if (!this._suppressHiDPIScaling) {
+      this.ctx.scale(this.pixelRatio, this.pixelRatio);
+      this._logger.warn(`Canvas drawing context was scaled by ${this.pixelRatio}`);
     }
 
     // initialize inputs
@@ -985,13 +1004,6 @@ O|===|* >________________>\n\
         this._logger.debug('Window visible');
       }
     });
-
-    this.ctx = <CanvasRenderingContext2D>this.canvas.getContext('2d');
-
-    this._suppressHiDPIScaling = !!options.suppressHiDPIScaling;
-    if (!options.suppressHiDPIScaling) {
-      this._initializeHiDpi();
-    }
 
     if (!this.canvasElementId) {
       document.body.appendChild(this.canvas);
@@ -1067,27 +1079,6 @@ O|===|* >________________>\n\
             : (this.canvas.style.left = options.position.left);
         }
       }
-    }
-  }
-
-  private _initializeHiDpi() {
-    // Scale the canvas if needed
-    if (this.isHiDpi) {
-      let oldWidth = this.canvas.width;
-      let oldHeight = this.canvas.height;
-
-      this.canvas.width = oldWidth * this.pixelRatio;
-      this.canvas.height = oldHeight * this.pixelRatio;
-
-      this.canvas.style.width = oldWidth + 'px';
-      this.canvas.style.height = oldHeight + 'px';
-
-      this._logger.warn(`Hi DPI screen detected, resetting canvas resolution from 
-                           ${oldWidth}x${oldHeight} to ${this.canvas.width}x${this.canvas.height} 
-                           css size will remain ${oldWidth}x${oldHeight}`);
-
-      this.ctx.scale(this.pixelRatio, this.pixelRatio);
-      this._logger.warn(`Canvas drawing context was scaled by ${this.pixelRatio}`);
     }
   }
 

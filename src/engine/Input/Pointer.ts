@@ -577,7 +577,7 @@ export class Pointers extends Class {
 
   private _handleMouseEvent(eventName: string, eventArr: PointerEvent[]) {
     return (e: MouseEvent) => {
-      e.preventDefault();
+      //   e.preventDefault();
 
       const pointer = this.at(0);
       const coordinates = GlobalCoordinates.fromPagePosition(e.pageX, e.pageY, this._engine);
@@ -590,7 +590,7 @@ export class Pointers extends Class {
 
   private _handleTouchEvent(eventName: string, eventArr: PointerEvent[]) {
     return (e: ITouchEvent) => {
-      e.preventDefault();
+      //   e.preventDefault();
       for (var i = 0, len = e.changedTouches.length; i < len; i++) {
         const index = this._pointers.length > 1 ? this._getPointerIndex(e.changedTouches[i].identifier) : 0;
         if (index === -1) {
@@ -619,7 +619,7 @@ export class Pointers extends Class {
 
   private _handlePointerEvent(eventName: string, eventArr: PointerEvent[]) {
     return (e: MSPointerEvent) => {
-      e.preventDefault();
+      //   e.preventDefault();
 
       // get the index for this pointer ID if multi-pointer is asked for
       const index = this._pointers.length > 1 ? this._getPointerIndex(e.pointerId) : 0;
